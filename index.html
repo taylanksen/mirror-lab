@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d1c">
+  <title>Mirror Lab | Webcam</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090d1c;
+      --panel: #121a30;
+      --text: #f2f5ff;
+      --muted: #9ba8c5;
+      --purple: #a78bfa;
+      --blue: #60a5fa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 32px 18px;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at top, #20234c 0%, transparent 55%),
+        var(--bg);
+    }
+
+    main {
+      width: min(100%, 960px);
+      margin: 0 auto;
+    }
+
+    header { margin-bottom: 26px; }
+
+    .eyebrow {
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 8px 0;
+      font-size: clamp(30px, 6vw, 48px);
+      letter-spacing: -0.04em;
+    }
+
+    h1 span {
+      background: linear-gradient(90deg, var(--purple), var(--blue));
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    p { color: var(--muted); line-height: 1.6; }
+
+    .panel {
+      padding: 14px;
+      background: rgba(18, 26, 48, 0.92);
+      border: 1px solid #303b5c;
+      border-radius: 20px;
+      box-shadow: 0 24px 70px #0005;
+    }
+
+    .camera {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      background: #050812;
+      border-radius: 13px;
+    }
+
+    video {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    video[hidden] { display: none; }
+
+    .placeholder {
+      padding: 24px;
+      text-align: center;
+    }
+
+    .camera-icon {
+      font-size: 42px;
+      margin-bottom: 10px;
+    }
+
+    .placeholder p { margin-bottom: 0; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding-top: 16px;
+    }
+
+    button {
+      padding: 12px 19px;
+      border: 0;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    #start {
+      color: #0a1022;
+      background: linear-gradient(100deg, var(--purple), var(--blue));
+    }
+
+    #stop {
+      color: var(--text);
+      background: #27314d;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+
+    .dot.live { background: #4ade80; }
+
+    .info {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .info article {
+      padding: 15px;
+      background: #ffffff06;
+      border: 1px solid #ffffff12;
+      border-radius: 12px;
+    }
+
+    .info strong { font-size: 13px; }
+    .info p { margin: 6px 0 0; font-size: 13px; }
+
+    #message {
+      min-height: 24px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #7885a5;
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 24px 12px; }
+      .status { width: 100%; margin-left: 0; }
+      .info { grid-template-columns: 1fr; }
+      .panel { padding: 9px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">Camera tools / 01</div>
+      <h1>Mirror <span>Lab.</span></h1>
+      <p>A simple live mirror, built as a starting point
+         for real-time computer vision.</p>
+    </header>
+
+    <section class="panel" aria-label="Webcam mirror">
+      <div class="camera">
+        <video id="video" autoplay playsinline muted hidden></video>
+
+        <div id="placeholder" class="placeholder">
+          <div class="camera-icon">◎</div>
+          <strong>Your mirror is waiting</strong>
+          <p>Start your camera to see the live feed.</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="start">Start camera</button>
+        <button id="stop" disabled>Stop camera</button>
+
+        <div class="status" role="status" aria-live="polite">
+          <span id="dot" class="dot"></span>
+          <span id="statusText">Camera off</span>
+        </div>
+      </div>
+
+      <p id="message" role="status" aria-live="polite">
+        Your camera stays in this browser. Nothing is uploaded.
+      </p>
+    </section>
+
+    <section class="info">
+      <article>
+        <strong>01 / Live video</strong>
+        <p>Displays your camera feed directly in the browser.</p>
+      </article>
+      <article>
+        <strong>02 / Mirror mode</strong>
+        <p>Flips the image horizontally, like looking in a mirror.</p>
+      </article>
+      <article>
+        <strong>03 / Next step</strong>
+        <p>Designed to make adding MediaPipe face landmarks easier.</p>
+      </article>
+      <article>
+        <strong>04 / Privacy</strong>
+        <p>No recording, screenshots, or video uploads are performed.</p>
+      </article>
+    </section>
+
+    <footer> MIRROR LAB · LOCAL CAMERA PROCESSING </footer>
+  </main>
+
+  <script>
+    const video = document.querySelector("#video");
+    const placeholder = document.querySelector("#placeholder");
+    const startButton = document.querySelector("#start");
+    const stopButton = document.querySelector("#stop");
+    const statusText = document.querySelector("#statusText");
+    const dot = document.querySelector("#dot");
+    const message = document.querySelector("#message");
+
+    let stream = null;
+
+    function setStatus(text, live = false) {
+      statusText.textContent = text;
+      dot.classList.toggle("live", live);
+    }
+
+    function stopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+
+      video.srcObject = null;
+      video.hidden = true;
+      placeholder.hidden = false;
+      startButton.disabled = false;
+      stopButton.disabled = true;
+      setStatus("Camera off");
+    }
+
+    async function startCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        message.textContent =
+          "Camera access is unavailable. Open this site over HTTPS in a supported browser.";
+        return;
+      }
+
+      startButton.disabled = true;
+      setStatus("Requesting permission...");
+      message.textContent = "Allow camera access when your browser asks.";
+
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 960 }
+          }
+        });
+
+        // Handle a stop action while permission was pending.
+        if (!startButton.disabled) {
+          newStream.getTracks().forEach(track => track.stop());
+          return;
+        }
+
+        stream = newStream;
+        video.srcObject = stream;
+        video.hidden = false;
+        placeholder.hidden = true;
+        await video.play();
+
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        setStatus("Camera live", true);
+        message.textContent =
+          "Live mirror active. Your video stays on this device.";
+
+        stream.getVideoTracks()[0].addEventListener(
+          "ended", stopCamera, { once: true }
+        );
+      } catch (error) {
+        stopCamera();
+
+        if (error.name === "NotAllowedError") {
+          message.textContent =
+            "Camera permission was denied. Allow camera access in your browser settings.";
+        } else if (error.name === "NotFoundError") {
+          message.textContent =
+            "No camera was found. Connect a webcam and try again.";
+        } else {
+          message.textContent =
+            "Could not start the camera. Check that it is connected and not in use by another app.";
+        }
+      }
+    }
+
+    startButton.addEventListener("click", startCamera);
+    stopButton.addEventListener("click", () => {
+      stopCamera();
+      message.textContent = "Camera stopped.";
+    });
+
+    window.addEventListener("pagehide", stopCamera);
+  </script>
+</body>
+</html>
